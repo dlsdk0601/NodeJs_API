@@ -26,7 +26,7 @@ app.use("/feed", feedRouter);
 
 mongoose
   .connect(
-    `mongodb+srv://dlsdk0601:${process.env.MONGODB_PASSWORD}@portfolio.dacwcma.mongodb.net/test`,
+    `mongodb+srv://dlsdk0601:${process.env.MONGODB_PASSWORD}@portfolio.dacwcma.mongodb.net/test-api`,
   )
   .then(() => {
     app.listen(PORT, () => console.log("CONNECT::::::::::::::::::::::::::::::::"));
