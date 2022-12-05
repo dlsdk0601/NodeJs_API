@@ -6,6 +6,6 @@ const router = express.Router();
 // /feed/posts
 router.get("/posts", feedController.getPosts);
 
-export default {
-  router
-}
+router.post("/post", feedController.createPost);
+
+export default router;
