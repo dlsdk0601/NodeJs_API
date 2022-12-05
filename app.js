@@ -1,8 +1,12 @@
 import express from "express";
 import bodyParser from "body-parser";
+import mongoose from "mongoose";
+import dotenv from "dotenv";
 import feedRouter from "./routes/feed.js";
 
 const PORT = 8080;
+
+dotenv.config();
 
 const app = express();
 
@@ -20,4 +24,13 @@ app.use((req, res, next) => {
 
 app.use("/feed", feedRouter);
 
-app.listen(PORT, () => console.log("CONNECT::::::::::::::::::::::::::::::::"));
+mongoose
+  .connect(
+    `mongodb+srv://dlsdk0601:${process.env.MONGODB_PASSWORD}@portfolio.dacwcma.mongodb.net/test`,
+  )
+  .then(() => {
+    app.listen(PORT, () => console.log("CONNECT::::::::::::::::::::::::::::::::"));
+  })
+  .catch((err) => {
+    console.log(err);
+  });
