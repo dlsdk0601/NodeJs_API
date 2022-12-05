@@ -1,3 +1,5 @@
+import { validationResult } from "express-validator";
+
 const getPosts = (req, res) => {
   return res.status(200).json({
     posts: [
@@ -16,12 +18,23 @@ const getPosts = (req, res) => {
 };
 
 const createPost = (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(422).json({ message: "Validation fail", errors: errors.array() });
+  }
+
   const title = req.body.title;
   const content = req.body.content;
 
   res.status(201).json({
     message: "Post created Successfully",
-    post: { id: new Date().toISOString(), title, content },
+    post: {
+      _id: new Date().toISOString(),
+      title,
+      content,
+      creator: { name: "ina" },
+      createAt: new Date(),
+    },
   });
 };
 
