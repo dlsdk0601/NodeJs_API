@@ -5,11 +5,23 @@ import PostModel from "../models/post.js";
 
 const __dirname = path.resolve();
 
+const PER_PAGE = 2;
+
 const getPosts = (req, res, next) => {
+  let totalItems;
+  const currentPage = req.query.page || 1;
   PostModel.find()
+    .countDocuments()
+    .then((count) => {
+      totalItems = count;
+      return PostModel.find()
+        .skip((currentPage - 1) * PER_PAGE)
+        .limit(PER_PAGE);
+    })
     .then((posts) => {
       return res.status(200).json({
         posts,
+        totalItems,
         message: "Success!",
       });
     })
@@ -138,6 +150,37 @@ const updatePost = (req, res, next) => {
     });
 };
 
+const deletePost = (req, res, next) => {
+  const postId = req.params.postId;
+  PostModel.findById(postId)
+    .then((post) => {
+      // check logged user 현재 로그인 구현 아직
+
+      if (!post) {
+        const err = new Error("Could not find post.");
+        err.statusCode = 404;
+        throw err;
+      }
+
+      clearImage(post.imageUrl);
+
+      // 처음부터 findByIdAndRemove 를 사용하지 않은 이유는
+      // 해당 post가 있는지 확인부터 하기 위해 findById를 사용하고
+      // 해당 post가 있으면 remove 하는 로직 사용
+      return PostModel.findByIdAndRemove(postId);
+    })
+    .then((result) => {
+      console.log(result);
+      return res.status(200).json({ message: "Deleted post." });
+    })
+    .catch((err) => {
+      if (!err.statusCode) {
+        err.statusCode = 500;
+      }
+      next(err);
+    });
+};
+
 //이미지 지우는 함수
 const clearImage = (filepath) => {
   filepath = path.join(__dirname, "..", filepath); // /images안에 사진 파일 경로
@@ -151,4 +194,5 @@ export default {
   createPost,
   getPost,
   updatePost,
+  deletePost,
 };
