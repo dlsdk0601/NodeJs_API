@@ -66,8 +66,8 @@ app.use((err, req, res) => {
   console.log(err);
   const status = err.statusCode ?? 500;
   const message = err.message;
-
-  return res.status(status).json({ message });
+  const data = err.data;
+  return res.status(status).json({ message, data });
 });
 // route 컨트롤러에서 err가 발생하면 throw 했기 때문에 다음 미들웨어인 여기로 온다.
 // 그래서 route 미들웨어 밑에 작업해야함
