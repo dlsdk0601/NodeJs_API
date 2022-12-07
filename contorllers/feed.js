@@ -2,6 +2,7 @@ import fs from "fs";
 import path from "path";
 import { validationResult } from "express-validator";
 import PostModel from "../models/post.js";
+import User from "../models/user.js";
 
 const __dirname = path.resolve();
 
@@ -42,13 +43,14 @@ const createPost = (req, res, next) => {
     // throw 해버리면 자동으로 함수를 멈추고 express에서 제공하는 다음 오류 처리 함수나 미들웨어로 향하려 한다.
     throw error;
   }
-  console.log(req.file);
+
   if (!req.file) {
     const error = new Error("No Image provided.");
     error.statusCode = 422;
     throw error;
   }
 
+  let creator;
   const imageUrl = req.file.path;
   const title = req.body.title;
   const content = req.body.content;
@@ -56,15 +58,24 @@ const createPost = (req, res, next) => {
     title,
     content,
     imageUrl,
-    creator: { name: "ina" },
+    creator: req.userId,
   });
 
   post
     .save()
-    .then((result) => {
+    .then(() => {
+      return User.findById(req.userId);
+    })
+    .then((user) => {
+      creator = user;
+      user.posts.push(post);
+      return user.save();
+    })
+    .then(() => {
       return res.status(201).json({
         message: "Post created Successfully",
-        post: result,
+        post: post,
+        creator: { _id: creator._id, name: creator.name },
       });
     })
     .catch((err) => {
@@ -129,6 +140,13 @@ const updatePost = (req, res, next) => {
         throw err;
       }
 
+      // 권한 있는 유저 아니면 편집 못하게
+      if (post.creator.toString() !== req.userId) {
+        const err = new Error("Not authorized!");
+        err.statusCode = 403;
+        throw err;
+      }
+
       if (imageUrl !== post.imageUrl) {
         clearImage(post.imageUrl);
       }
@@ -162,6 +180,13 @@ const deletePost = (req, res, next) => {
         throw err;
       }
 
+      // 권한 있는 유저 아니면 편집 못하게
+      if (post.creator.toString() !== req.userId) {
+        const err = new Error("Not authorized!");
+        err.statusCode = 403;
+        throw err;
+      }
+
       clearImage(post.imageUrl);
 
       // 처음부터 findByIdAndRemove 를 사용하지 않은 이유는
@@ -169,8 +194,14 @@ const deletePost = (req, res, next) => {
       // 해당 post가 있으면 remove 하는 로직 사용
       return PostModel.findByIdAndRemove(postId);
     })
-    .then((result) => {
-      console.log(result);
+    .then(() => {
+      return User.findById(req.userId);
+    })
+    .then((user) => {
+      user.posts.pull(postId); // pull은 mongoose에서 제공하는 내장 method push의 반대
+      return user.save();
+    })
+    .then(() => {
       return res.status(200).json({ message: "Deleted post." });
     })
     .catch((err) => {
@@ -183,8 +214,8 @@ const deletePost = (req, res, next) => {
 
 //이미지 지우는 함수
 const clearImage = (filepath) => {
-  filepath = path.join(__dirname, "..", filepath); // /images안에 사진 파일 경로
-  // __dirname 현재 경로 / .. 상위폴더 이 // filepath 로 join
+  filepath = path.join(__dirname, filepath); // /images안에 사진 파일 경로
+  // __dirname 현재 root 경로, filepath 로 join
 
   fs.unlink(filepath, (err) => console.log(err)); // 삭제
 };
