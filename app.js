@@ -6,6 +6,7 @@ import dotenv from "dotenv";
 import multer from "multer";
 import cors from "cors";
 import feedRouter from "./routes/feed.js";
+import authRouter from "./routes/user.js";
 
 const PORT = 8080;
 
@@ -59,6 +60,7 @@ app.use(
 );
 
 app.use("/feed", feedRouter);
+app.use("/auth", authRouter);
 
 app.use((err, req, res) => {
   console.log(err);
