@@ -8,30 +8,26 @@ const __dirname = path.resolve();
 
 const PER_PAGE = 2;
 
-const getPosts = (req, res, next) => {
+const getPosts = async (req, res, next) => {
   let totalItems;
   const currentPage = req.query.page || 1;
-  PostModel.find()
-    .countDocuments()
-    .then((count) => {
-      totalItems = count;
-      return PostModel.find()
-        .skip((currentPage - 1) * PER_PAGE)
-        .limit(PER_PAGE);
-    })
-    .then((posts) => {
-      return res.status(200).json({
-        posts,
-        totalItems,
-        message: "Success!",
-      });
-    })
-    .catch((err) => {
-      if (!err.statusCode) {
-        err.statusCode = 500;
-      }
-      next(err);
+
+  try {
+    const count = await PostModel.find().countDocuments();
+    const posts = await PostModel.find()
+      .skip((currentPage - 1) * PER_PAGE)
+      .limit(PER_PAGE);
+    return res.status(200).json({
+      posts,
+      totalItems: count,
+      message: "Success!",
     });
+  } catch (err) {
+    if (!err.statusCode) {
+      err.statusCode = 401;
+    }
+    next(err);
+  }
 };
 
 const createPost = (req, res, next) => {
