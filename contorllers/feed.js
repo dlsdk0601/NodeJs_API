@@ -9,17 +9,16 @@ const __dirname = path.resolve();
 const PER_PAGE = 2;
 
 const getPosts = async (req, res, next) => {
-  let totalItems;
   const currentPage = req.query.page || 1;
 
   try {
-    const count = await PostModel.find().countDocuments();
+    const totalItems = await PostModel.find().countDocuments();
     const posts = await PostModel.find()
       .skip((currentPage - 1) * PER_PAGE)
       .limit(PER_PAGE);
     return res.status(200).json({
       posts,
-      totalItems: count,
+      totalItems,
       message: "Success!",
     });
   } catch (err) {
