@@ -42,46 +42,44 @@ const signUp = (req, res, next) => {
     });
 };
 
-const login = (req, res, next) => {
+const login = async (req, res, next) => {
   const {
     body: { email, password },
   } = req;
 
   let loadedUser;
-  User.findOne({ email })
-    .then((user) => {
-      if (!user) {
-        const err = new Error("A user with this email could not be found.");
-        err.statusCode = 401;
-        throw err;
-      }
-      loadedUser = user;
-      return bcrypt.compare(password, user.password);
-    })
-    .then((isEqual) => {
-      if (!isEqual) {
-        const err = new Error("Wrong password!");
-        err.statusCode = 401;
-        throw err;
-      }
+  try {
+    const user = await User.findOne({ email });
+    if (!user) {
+      const error = new Error("A user with this email could not be found.");
+      error.statusCode = 401;
+      throw error;
+    }
+    loadedUser = user;
 
-      // sign 내부 method로 토큰을 생성하는데, 첫번쨰 파라미터에는 토큰에 포함할 데이터,
-      // 두번째 파라미터에는 가입에 사용된 비공개 키
-      // 세번째 파라미터는 유효기간을 적는다.
-      const token = jwt.sign(
-        { email: loadedUser.email, userId: loadedUser._id.toString() },
-        process.env.JSONWEBTOKEN_SECRET_KEY,
-        { expiresIn: "1h" },
-      );
+    const isEqual = await bcrypt.compare(password, user.password);
 
-      return res.status(200).json({ token, userId: loadedUser._id.toString() });
-    })
-    .catch((err) => {
-      if (!err.statusCode) {
-        err.statusCode = 500;
-      }
-      next(err);
-    });
+    if (!isEqual) {
+      const error = new Error("A user with this email could not be found.");
+      error.statusCode = 401;
+      throw error;
+    }
+
+    const token = jwt.sign(
+      { email: loadedUser.email, userId: loadedUser._id.toString() },
+      process.env.JSONWEBTOKEN_SECRET_KEY,
+      { expiresIn: "1h" },
+    );
+
+    res.status(200).json({ token, userId: loadedUser._id.toString() });
+    return;
+  } catch (err) {
+    if (!err.statusCode) {
+      err.statusCode = 500;
+    }
+    next(err);
+    return err;
+  }
 };
 
 export default {
