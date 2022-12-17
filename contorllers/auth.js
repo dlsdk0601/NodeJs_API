@@ -82,7 +82,26 @@ const login = async (req, res, next) => {
   }
 };
 
+const getUserStatus = async (req, res, next) => {
+  try {
+    const user = await User.findById(req.userId);
+
+    if (!user) {
+      const error = new Error("User not found.");
+      error.statusCode = 404;
+      throw error;
+    }
+    return res.status(200).json({ status: user.status });
+  } catch (e) {
+    if (!e.statusCode) {
+      e.statsCode = 500;
+    }
+    next(e);
+  }
+};
+
 export default {
   signUp,
   login,
+  getUserStatus,
 };
