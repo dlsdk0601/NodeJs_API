@@ -29,7 +29,7 @@ const getPosts = async (req, res, next) => {
   }
 };
 
-const createPost = (req, res, next) => {
+const createPost = async (req, res, next) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     const error = new Error("Validation fail");
@@ -56,29 +56,23 @@ const createPost = (req, res, next) => {
     creator: req.userId,
   });
 
-  post
-    .save()
-    .then(() => {
-      return User.findById(req.userId);
-    })
-    .then((user) => {
-      creator = user;
-      user.posts.push(post);
-      return user.save();
-    })
-    .then(() => {
-      return res.status(201).json({
-        message: "Post created Successfully",
-        post: post,
-        creator: { _id: creator._id, name: creator.name },
-      });
-    })
-    .catch((err) => {
-      if (!err.statusCode) {
-        err.statusCode = 500;
-      }
-      next(err);
+  try {
+    await post.save();
+    const user = await User.findById(req.userId);
+    user.posts.push(post);
+    const savedUser = await user.save();
+    res.status(201).json({
+      message: "Post created Successfully",
+      post: post,
+      creator: { _id: creator._id, name: creator.name },
     });
+    return savedUser;
+  } catch (err) {
+    if (!err.statusCode) {
+      err.statusCode = 500;
+    }
+    next(err);
+  }
 };
 
 const getPost = (req, res, next) => {
